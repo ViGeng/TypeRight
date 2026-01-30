@@ -1,0 +1,103 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build
+        run: |
+          xcodebuild -project TypeRight.xcodeproj \
+            -scheme TypeRight \
+            -configuration Release \
+            -archivePath build/TypeRight.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export App
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/TypeRight.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist || true
+          
+          # Fallback: copy from archive if export fails
+          if [ ! -d "build/export/TypeRight.app" ]; then
+            cp -R build/TypeRight.xcarchive/Products/Applications/TypeRight.app build/
+          else
+            cp -R build/export/TypeRight.app build/
+          fi
+
+      - name: Create ZIP
+        run: |
+          cd build
+          zip -r TypeRight.zip TypeRight.app
+          shasum -a 256 TypeRight.zip > TypeRight.zip.sha256
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/TypeRight.zip
+            build/TypeRight.zip.sha256
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          SHA256=$(cat build/TypeRight.zip.sha256 | awk '{print $1}')
+          VERSION=${{ steps.version.outputs.VERSION }}
+          
+          # Clone homebrew-tap repo
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ViGeng/homebrew-tap.git
+          cd homebrew-tap
+          
+          # Create Casks directory if not exists
+          mkdir -p Casks
+          
+          # Update formula
+          cat > Casks/typeright.rb << EOF
+cask "typeright" do
+  version "${VERSION#v}"
+  sha256 "${SHA256}"
+
+  url "https://github.com/ViGeng/TypeRight/releases/download/${VERSION}/TypeRight.zip"
+  name "TypeRight"
+  desc "Menu bar app to track backspace ratio and improve typing efficiency"
+  homepage "https://github.com/ViGeng/TypeRight"
+
+  depends_on macos: ">= :ventura"
+
+  app "TypeRight.app"
+
+  zap trash: [
+    "~/Library/Preferences/com.vigeng.TypeRight.plist",
+  ]
+end
+EOF
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/typeright.rb
+          git commit -m "Update TypeRight to ${VERSION}" || exit 0
+          git push
