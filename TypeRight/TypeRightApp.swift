@@ -76,8 +76,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusItem()
         
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Stats", action: nil, keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
         
         let statsItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         statsItem.tag = 100
@@ -86,6 +84,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Reset Stats", action: #selector(resetStats), keyEquivalent: "r"))
         menu.addItem(NSMenuItem.separator())
+        
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1"
+        menu.addItem(NSMenuItem(title: "Version \(version)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q"))
         
         statusItem.menu = menu
