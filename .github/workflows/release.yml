@@ -68,33 +68,26 @@ jobs:
           SHA256=$(cat build/TypeRight.zip.sha256 | awk '{print $1}')
           VERSION=${{ steps.version.outputs.VERSION }}
           
-          # Clone homebrew-tap repo
           git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ViGeng/homebrew-tap.git
           cd homebrew-tap
-          
-          # Create Casks directory if not exists
           mkdir -p Casks
           
-          # Update formula
-          cat > Casks/typeright.rb << EOF
-cask "typeright" do
-  version "${VERSION#v}"
-  sha256 "${SHA256}"
-
-  url "https://github.com/ViGeng/TypeRight/releases/download/${VERSION}/TypeRight.zip"
-  name "TypeRight"
-  desc "Menu bar app to track backspace ratio and improve typing efficiency"
-  homepage "https://github.com/ViGeng/TypeRight"
-
-  depends_on macos: ">= :ventura"
-
-  app "TypeRight.app"
-
-  zap trash: [
-    "~/Library/Preferences/com.vigeng.TypeRight.plist",
-  ]
-end
-EOF
+          cat > Casks/typeright.rb << 'CASKEOF'
+          cask "typeright" do
+            version "VERSION_PLACEHOLDER"
+            sha256 "SHA256_PLACEHOLDER"
+            url "https://github.com/ViGeng/TypeRight/releases/download/vVERSION_PLACEHOLDER/TypeRight.zip"
+            name "TypeRight"
+            desc "Menu bar app to track backspace ratio and improve typing efficiency"
+            homepage "https://github.com/ViGeng/TypeRight"
+            depends_on macos: ">= :ventura"
+            app "TypeRight.app"
+            zap trash: ["~/Library/Preferences/com.vigeng.TypeRight.plist"]
+          end
+          CASKEOF
+          
+          sed -i '' "s/VERSION_PLACEHOLDER/${VERSION#v}/g" Casks/typeright.rb
+          sed -i '' "s/SHA256_PLACEHOLDER/${SHA256}/g" Casks/typeright.rb
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
