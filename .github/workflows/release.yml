@@ -86,7 +86,7 @@ jobs:
             depends_on macos: ">= :ventura"
             app "TypeRight.app"
             postflight do
-              system_command "/usr/bin/xattr", args: ["-cr", "#{appdir}/TypeRight.app"]
+              system_command "/usr/bin/xattr", args: ["-cr", staged_path.to_s]
             end
             zap trash: ["~/Library/Preferences/com.vigeng.TypeRight.plist"]
           end
