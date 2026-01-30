@@ -20,6 +20,17 @@ A native macOS Menu Bar app to improve typing efficiency by tracking your "Backs
 - macOS 13.0+
 - Accessibility Permissions (required for global keyboard monitoring)
 
+## Installation
+
+### Homebrew (Recommended)
+
+```bash
+brew tap ViGeng/tap
+brew install --cask typeright
+```
+
+### Build from Source
+
 ## Setup in Xcode
 
 ### 1. Disable App Sandbox
