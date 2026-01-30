@@ -29,6 +29,12 @@ brew tap ViGeng/tap
 brew install --cask typeright
 ```
 
+After installation, remove the quarantine attribute (required for unsigned apps):
+
+```bash
+xattr -cr /Applications/TypeRight.app
+```
+
 ### Build from Source
 
 ## Setup in Xcode
