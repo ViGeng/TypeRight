@@ -19,6 +19,13 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
       - name: Build
         run: |
           xcodebuild -project TypeRight.xcodeproj \
@@ -28,7 +35,8 @@ jobs:
             archive \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION=${{ steps.version.outputs.VERSION }}
 
       - name: Export App
         run: |
@@ -50,10 +58,6 @@ jobs:
           zip -r TypeRight.zip TypeRight.app
           shasum -a 256 TypeRight.zip > TypeRight.zip.sha256
 
-      - name: Get version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -70,6 +74,7 @@ jobs:
         run: |
           SHA256=$(cat build/TypeRight.zip.sha256 | awk '{print $1}')
           VERSION=${{ steps.version.outputs.VERSION }}
+          TAG=${{ steps.version.outputs.TAG }}
           
           git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ViGeng/homebrew-tap.git
           cd homebrew-tap
@@ -79,7 +84,7 @@ jobs:
           cask "typeright" do
             version "VERSION_PLACEHOLDER"
             sha256 "SHA256_PLACEHOLDER"
-            url "https://github.com/ViGeng/TypeRight/releases/download/vVERSION_PLACEHOLDER/TypeRight.zip"
+            url "https://github.com/ViGeng/TypeRight/releases/download/TAG_PLACEHOLDER/TypeRight.zip"
             name "TypeRight"
             desc "Menu bar app to track backspace ratio and improve typing efficiency"
             homepage "https://github.com/ViGeng/TypeRight"
@@ -92,7 +97,8 @@ jobs:
           end
           CASKEOF
           
-          sed -i '' "s/VERSION_PLACEHOLDER/${VERSION#v}/g" Casks/typeright.rb
+          sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" Casks/typeright.rb
+          sed -i '' "s/TAG_PLACEHOLDER/${TAG}/g" Casks/typeright.rb
           sed -i '' "s/SHA256_PLACEHOLDER/${SHA256}/g" Casks/typeright.rb
           
           git config user.name "github-actions[bot]"
