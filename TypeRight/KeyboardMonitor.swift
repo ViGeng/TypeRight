@@ -13,6 +13,12 @@ class KeyboardMonitor {
     private(set) var totalKeystrokes: Int = 0
     private(set) var totalBackspaces: Int = 0
     
+    // Hourly tracking
+    private var currentHourKeystrokes: Int = 0
+    private var currentHourBackspaces: Int = 0
+    private var currentHourStart: Date = Date()
+    private let historyManager = HistoryDataManager.shared
+    
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     
@@ -77,9 +83,14 @@ class KeyboardMonitor {
     func reset() {
         totalKeystrokes = 0
         totalBackspaces = 0
+        currentHourKeystrokes = 0
+        currentHourBackspaces = 0
+        currentHourStart = Date()
         backspaceTimestamps.removeAll()
         isInAlertMode = false
         alertModeExitTime = nil
+        // Clear all historical data from SQLite
+        historyManager.resetAll()
     }
     
     private func handleKeyEvent(_ event: CGEvent) {
@@ -91,17 +102,62 @@ class KeyboardMonitor {
     }
     
     private func processKey(keyCode: Int64) {
+        // Check for hour boundary before counting
+        checkHourBoundary()
+        
         totalKeystrokes += 1
+        currentHourKeystrokes += 1
         
         // Backspace key code is 51
         let isBackspace = keyCode == 51
         
         if isBackspace {
             totalBackspaces += 1
+            currentHourBackspaces += 1
             checkBurst()
         } else {
             // Non-backspace key - check if we should exit alert mode
             exitAlertModeIfNeeded()
+        }
+    }
+    
+    /// Check if we've crossed into a new hour and save the previous hour's data
+    private func checkHourBoundary() {
+        let now = Date()
+        let currentStartOfHour = historyManager.startOfHour(for: now)
+        let previousStartOfHour = historyManager.startOfHour(for: currentHourStart)
+        
+        // If we've moved to a new hour
+        if currentStartOfHour != previousStartOfHour {
+            // Save the previous hour's data if there was any activity
+            if currentHourKeystrokes > 0 {
+                historyManager.recordHour(
+                    hour: previousStartOfHour,
+                    keystrokes: currentHourKeystrokes,
+                    backspaces: currentHourBackspaces
+                )
+            }
+            
+            // Reset counters for the new hour
+            currentHourKeystrokes = 0
+            currentHourBackspaces = 0
+            currentHourStart = now
+        }
+    }
+    
+    /// Force save current hour's data (called periodically and on shutdown)
+    func saveCurrentHour() {
+        if currentHourKeystrokes > 0 {
+            let hourStart = historyManager.startOfHour(for: currentHourStart)
+            historyManager.recordHour(
+                hour: hourStart,
+                keystrokes: currentHourKeystrokes,
+                backspaces: currentHourBackspaces
+            )
+            // Reset after saving to avoid double-counting
+            currentHourKeystrokes = 0
+            currentHourBackspaces = 0
+            currentHourStart = Date()
         }
     }
     

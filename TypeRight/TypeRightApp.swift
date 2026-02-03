@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 @main
 struct TypeRightApp: App {
@@ -23,6 +24,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var keyboardMonitor: KeyboardMonitor!
     private var hudController: HUDController!
+    private var launchAtLoginItem: NSMenuItem!
+    
+    private var launchAtLogin: Bool {
+        get {
+            SMAppService.mainApp.status == .enabled
+        }
+        set {
+            do {
+                if newValue {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                print("Launch at login error: \(error)")
+            }
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide from Dock
@@ -48,6 +67,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.updateStatusItem()
         }
+        
+        // Save current hour's data periodically (every 5 minutes)
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            self?.keyboardMonitor.saveCurrentHour()
+        }
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        // Save current hour's data before quitting
+        keyboardMonitor.saveCurrentHour()
     }
     
     private func checkAccessibilityPermissions() -> Bool {
@@ -82,7 +111,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(statsItem)
         
         menu.addItem(NSMenuItem.separator())
+        
+        // Add chart view as menu item
+        let chartMenuItem = NSMenuItem()
+        let chartHostingView = NSHostingView(rootView: ChartMenuView())
+        chartHostingView.frame = NSRect(x: 0, y: 0, width: 280, height: 200)
+        chartMenuItem.view = chartHostingView
+        menu.addItem(chartMenuItem)
+        
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Reset Stats", action: #selector(resetStats), keyEquivalent: "r"))
+        menu.addItem(NSMenuItem.separator())
+        
+        // Launch at Login toggle
+        launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem.state = launchAtLogin ? .on : .off
+        menu.addItem(launchAtLoginItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1"
@@ -135,6 +180,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func resetStats() {
         keyboardMonitor.reset()
         updateStatusItem()
+    }
+    
+    @objc private func toggleLaunchAtLogin() {
+        launchAtLogin.toggle()
+        launchAtLoginItem.state = launchAtLogin ? .on : .off
     }
     
     @objc private func quitApp() {

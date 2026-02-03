@@ -60,6 +60,23 @@ This app doesn't use Core Data. Remove the `.xcdatamodeld` file if it exists.
 2. Run (`⌘R`)
 3. Grant Accessibility permissions when prompted
 
+### 4. Accessibility Permissions (Xcode Debug Builds)
+
+When running from Xcode, the app is built to the DerivedData folder, **not** `/Applications`. To grant Accessibility permissions:
+
+1. Open **System Settings > Privacy & Security > Accessibility**
+2. Click the `+` button
+3. Press `⌘⇧G` to open "Go to Folder"
+4. Paste this path:
+   ```
+   ~/Library/Developer/Xcode/DerivedData
+   ```
+5. Find the folder starting with `TypeRight-` (e.g., `TypeRight-bsozgjpagmboizbgwvyjuifpeizs`)
+6. Navigate to `Build/Products/Debug/TypeRight.app`
+7. Select it and click **Open**
+
+> **Tip**: If you clean the build folder (`⌘⇧K`), you'll need to re-add the app after rebuilding.
+
 ## Usage
 
 - Click the menu bar item to see stats
