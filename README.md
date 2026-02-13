@@ -11,6 +11,8 @@ A native macOS Menu Bar app to improve typing efficiency by tracking your "Backs
   - 🟢 Green: < 5% (excellent)
   - 🟠 Orange: 5-10% (moderate)
   - 🔴 Red: > 10% (high)
+- **Interactive Charts**: visualized backspace trends with smoothed lines and data interpolation.
+- **Customizable Alerts**: Toggle sound and HUD overlays in the settings.
 - **Burst Detection**: Detects "rage deleting" (5+ backspaces in 10 seconds)
 - **Alert Feedback**: Visual HUD, haptic feedback, and sound when triggered
 - **Privacy First**: No keylogging—only counts keystrokes

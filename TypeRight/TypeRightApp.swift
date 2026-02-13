@@ -24,7 +24,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var keyboardMonitor: KeyboardMonitor!
     private var hudController: HUDController!
+    private var soundEnabledItem: NSMenuItem!
+    private var hudEnabledItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
+    
+    // MARK: - User Settings
+    
+    private var isSoundEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "isSoundEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "isSoundEnabled") }
+    }
+    
+    private var isHUDEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "isHUDEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "isHUDEnabled") }
+    }
     
     private var launchAtLogin: Bool {
         get {
@@ -118,15 +132,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         chartHostingView.frame = NSRect(x: 0, y: 0, width: 280, height: 200)
         chartMenuItem.view = chartHostingView
         menu.addItem(chartMenuItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Reset Stats", action: #selector(resetStats), keyEquivalent: "r"))
         menu.addItem(NSMenuItem.separator())
         
+        // Settings Section
+        menu.addItem(NSMenuItem(title: "Settings", action: nil, keyEquivalent: ""))
+        
+        // Sound Toggle
+        soundEnabledItem = NSMenuItem(title: "Enable Sound", action: #selector(toggleSound), keyEquivalent: "")
+        soundEnabledItem.state = isSoundEnabled ? .on : .off
+        menu.addItem(soundEnabledItem)
+        
+        // HUD Toggle
+        hudEnabledItem = NSMenuItem(title: "Enable HUD", action: #selector(toggleHUD), keyEquivalent: "")
+        hudEnabledItem.state = isHUDEnabled ? .on : .off
+        menu.addItem(hudEnabledItem)
+                
         // Launch at Login toggle
         launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.state = launchAtLogin ? .on : .off
         menu.addItem(launchAtLoginItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        menu.addItem(NSMenuItem(title: "Reset Stats", action: #selector(resetStats), keyEquivalent: "r"))
         
         menu.addItem(NSMenuItem.separator())
         
@@ -164,9 +192,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func onBurstDetected() {
-        hudController.showAlert()
-        playHaptic()
-        playSound()
+        if isHUDEnabled {
+            hudController.showAlert()
+        }
+        
+        if isSoundEnabled {
+            playHaptic() // Keep haptic feedback even if sound is off? Assuming "Strong Sound" refers to beep.
+            playSound()
+        } else {
+             playHaptic()
+        }
     }
     
     private func playHaptic() {
@@ -180,6 +215,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func resetStats() {
         keyboardMonitor.reset()
         updateStatusItem()
+    }
+    
+    @objc private func toggleSound() {
+        isSoundEnabled.toggle()
+        soundEnabledItem.state = isSoundEnabled ? .on : .off
+    }
+    
+    @objc private func toggleHUD() {
+        isHUDEnabled.toggle()
+        hudEnabledItem.state = isHUDEnabled ? .on : .off
     }
     
     @objc private func toggleLaunchAtLogin() {
