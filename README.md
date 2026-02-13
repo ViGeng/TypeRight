@@ -2,7 +2,8 @@
 
 A native macOS Menu Bar app to improve typing efficiency by tracking your "Backspace Ratio" and providing feedback when excessive backspacing occurs.
 
-<img src="image.png" alt="alt text" width="50%">
+<img alt="image" width="30%" src="https://github.com/user-attachments/assets/250b1d3a-e157-46fd-a5bf-a5344cbe952c" />
+
 
 ## Features
 
